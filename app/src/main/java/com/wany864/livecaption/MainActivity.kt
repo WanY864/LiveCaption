@@ -29,6 +29,17 @@ private val Muted = Color(0xFF929BAA)
 private val Paper = Color(0xFFF4F7FB)
 
 class MainActivity : ComponentActivity() {
+    private var speechController: EnglishSpeechController? = null
+
+    internal fun bindController(controller: EnglishSpeechController?) {
+        speechController = controller
+    }
+
+    override fun onStop() {
+        speechController?.pause()
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.statusBarColor = android.graphics.Color.rgb(8, 11, 18)
@@ -54,7 +65,13 @@ private fun LiveCaptionApp() {
             onListeningChanged = { listening = it }
         )
     }
-    DisposableEffect(controller) { onDispose { controller.destroy() } }
+    DisposableEffect(controller) {
+        (context as? MainActivity)?.bindController(controller)
+        onDispose {
+            (context as? MainActivity)?.bindController(null)
+            controller.destroy()
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -124,7 +141,7 @@ private fun LiveCaptionApp() {
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
-                            Modifier.weight(1f).height(54.dp),
+                            modifier = Modifier.weight(1f).height(54.dp),
                             onClick = {
                                 if (listening) controller.pause()
                                 else {
@@ -140,7 +157,7 @@ private fun LiveCaptionApp() {
                         ) { Text(if (listening) "Pause" else "Start listening", fontSize = 15.sp) }
 
                         OutlinedButton(
-                            Modifier.height(54.dp),
+                            modifier = Modifier.height(54.dp),
                             onClick = { controller.pause(); caption = ""; status = "Ready" },
                             shape = RoundedCornerShape(16.dp)
                         ) { Text("Clear", color = Paper) }
