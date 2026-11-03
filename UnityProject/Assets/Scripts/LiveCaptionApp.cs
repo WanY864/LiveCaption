@@ -65,8 +65,8 @@ public sealed class LiveCaptionApp : MonoBehaviour {
         if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
         {
             permissionCallbacks = new PermissionCallbacks();
-            permissionCallbacks.PermissionGranted += delegate { StartNativeListening(); };
-            permissionCallbacks.PermissionDenied += delegate { OnSpeechError("Microphone permission denied"); };
+            permissionCallbacks.PermissionGranted += _ => StartNativeListening();
+            permissionCallbacks.PermissionDenied += _ => OnSpeechError("Microphone permission denied");
             Permission.RequestUserPermission(Permission.Microphone, permissionCallbacks);
         }
         else StartNativeListening();
