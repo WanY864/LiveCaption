@@ -23,7 +23,7 @@ public sealed class LiveCaptionBootstrap : MonoBehaviour
 
         var root = new GameObject("LiveCaptionApp");
         DontDestroyOnLoad(root);
-        root.AddComponent<LiveCaptionApp>();
+        root.AddComponent<StickyNotesBoard>();
     }
 }
 
