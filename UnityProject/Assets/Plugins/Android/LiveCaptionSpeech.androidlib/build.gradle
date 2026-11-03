@@ -1,10 +1,30 @@
 apply plugin: 'com.android.library'
 
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
+
 android {
-    namespace 'com.wany864.livecaption'
-    compileSdkVersion **APIVERSION**
+    namespace "com.wany864.livecaption"
+    compileSdk getProperty("unity.compileSdkVersion") as int
+    buildToolsVersion getProperty("unity.buildToolsVersion")
+
+    compileOptions {
+        sourceCompatibility JavaVersion.valueOf(getProperty("unity.javaCompatibilityVersion"))
+        targetCompatibility JavaVersion.valueOf(getProperty("unity.javaCompatibilityVersion"))
+    }
+
     defaultConfig {
-        minSdkVersion **MINSDKVERSION**
-        targetSdkVersion **TARGETSDKVERSION**
+        minSdk getProperty("unity.minSdkVersion") as int
+        targetSdk getProperty("unity.targetSdkVersion") as int
+        ndk {
+            abiFilters.addAll(getProperty("unity.abiFilters").tokenize(','))
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
     }
 }
