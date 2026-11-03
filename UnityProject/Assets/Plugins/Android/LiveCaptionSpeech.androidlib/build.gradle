@@ -1,0 +1,10 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'com.wany864.livecaption'
+    compileSdkVersion **APIVERSION**
+    defaultConfig {
+        minSdkVersion **MINSDKVERSION**
+        targetSdkVersion **TARGETSDKVERSION**
+    }
+}
