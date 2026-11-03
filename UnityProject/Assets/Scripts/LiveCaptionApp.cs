@@ -62,11 +62,34 @@ public sealed class LiveCaptionApp : MonoBehaviour {
 #if UNITY_EDITOR
         listening=true;SetButtonLabel("PAUSE");SetStatus("EDITOR DEMO · ENGLISH");StartCoroutine(Demo());
 #elif UNITY_ANDROID && !UNITY_EDITOR
-        try{using(var b=new AndroidJavaClass("com.wany864.livecaption.LiveCaptionSpeechBridge"))using(var p=new AndroidJavaClass("com.unity3d.player.UnityPlayer"))b.CallStatic("start",p.GetStatic<AndroidJavaObject>("currentActivity"),"LiveCaptionApp");listening=true;SetButtonLabel("PAUSE");SetStatus("STARTING · ENGLISH");}catch(System.Exception e){SetStatus("START FAILED: "+e.Message);}
+        if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+        {
+            permissionCallbacks = new PermissionCallbacks();
+            permissionCallbacks.PermissionGranted += delegate { StartNativeListening(); };
+            permissionCallbacks.PermissionDenied += delegate { OnSpeechError("Microphone permission denied"); };
+            Permission.RequestUserPermission(Permission.Microphone, permissionCallbacks);
+        }
+        else StartNativeListening();
 #else
         SetStatus("ANDROID DEVICE REQUIRED");
 #endif
     }
+    private void StartNativeListening()
+    {
+        try
+        {
+            using (var bridge = new AndroidJavaClass("com.wany864.livecaption.LiveCaptionSpeechBridge"))
+            using (var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            {
+                bridge.CallStatic("start", player.GetStatic<AndroidJavaObject>("currentActivity"), "LiveCaptionApp");
+            }
+            listening = true;
+            SetButtonLabel("PAUSE");
+            SetStatus("STARTING · ENGLISH");
+        }
+        catch (System.Exception e) { OnSpeechError("Start failed: " + e.Message); }
+    }
+
     private System.Collections.IEnumerator Demo(){string[] s={"Today we're exploring human computer interaction.","Live captions should be clear and easy to follow.","This is an English only speech recognition demo."};int i=0;while(listening){OnCaption(s[i++%s.Length]);yield return new WaitForSeconds(3f);}}
     private void StopListening(string message){listening=false;StopAllCoroutines();StopNativeBridge();SetButtonLabel("START LISTENING");SetStatus(message);}
     private void StopNativeBridge(){
