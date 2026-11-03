@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.Android;
 
 public sealed class LiveCaptionBootstrap : MonoBehaviour {
     private static bool created;
@@ -18,6 +19,7 @@ public sealed class LiveCaptionApp : MonoBehaviour {
     private Text captionText,statusText;
     private Button startButton;
     private bool listening,twoLines,largeText=true;
+    private PermissionCallbacks permissionCallbacks;
     private readonly Color ink=new Color32(8,11,18,255), panel=new Color32(21,27,39,255),
         accent=new Color32(113,224,193,255), muted=new Color32(146,155,170,255), paper=new Color32(244,247,251,255);
 
@@ -37,9 +39,9 @@ public sealed class LiveCaptionApp : MonoBehaviour {
         var bg=Rect("Background",c.transform,new Vector2(0,0),new Vector2(1,1));bg.gameObject.AddComponent<Image>().color=ink;
         statusText=Txt("Status",c.transform,"READY",30,muted,TextAnchor.MiddleLeft);Anchor(statusText.rectTransform,new Vector2(.08f,.87f),new Vector2(.92f,.94f));
         var brand=Txt("Brand",c.transform,"LIVE CAPTION",24,muted,TextAnchor.MiddleRight);Anchor(brand.rectTransform,new Vector2(.55f,.87f),new Vector2(.92f,.94f));
-        var card=Rect("CaptionPanel",c.transform,new Vector2(.07f,.38f),new Vector2(.93f,.66f));card.gameObject.AddComponent<Image>().color=panel;
+        var card=Rect("CaptionPanel",c.transform,new Vector2(.07f,.38f),new Vector2(.93f,.66f));card.gameObject.AddComponent<Image>().color=panel;card.gameObject.AddComponent<RectMask2D>();
         captionText=Txt("CurrentCaption",card,"Your English captions will appear here…",68,muted,TextAnchor.MiddleLeft);
-        captionText.horizontalOverflow=HorizontalWrapMode.Wrap;captionText.verticalOverflow=VerticalWrapMode.Truncate;
+        captionText.horizontalOverflow=HorizontalWrapMode.Overflow;captionText.verticalOverflow=VerticalWrapMode.Truncate;
         Anchor(captionText.rectTransform,new Vector2(.06f,.08f),new Vector2(.94f,.92f));
         var layout=Txt("LayoutLabel",c.transform,"CAPTION LAYOUT",24,muted,TextAnchor.MiddleLeft);Anchor(layout.rectTransform,new Vector2(.08f,.29f),new Vector2(.5f,.34f));
         Btn(c.transform,"1 LINE",new Vector2(.52f,.285f),new Vector2(.70f,.345f),()=>SetLines(false));
@@ -73,7 +75,7 @@ public sealed class LiveCaptionApp : MonoBehaviour {
 #endif
     }
     private void Clear(){captionText.text="";SetStatus(listening?"LISTENING · ENGLISH":"CLEARED");}
-    private void SetLines(bool value){twoLines=value;captionText.verticalOverflow=VerticalWrapMode.Truncate;}
+    private void SetLines(bool value){twoLines=value;captionText.horizontalOverflow=value?HorizontalWrapMode.Wrap:HorizontalWrapMode.Overflow;captionText.verticalOverflow=VerticalWrapMode.Truncate;}
     private void SetSize(bool value){largeText=value;captionText.fontSize=value?68:52;}
     private void SetButtonLabel(string value){var t=startButton!=null?startButton.GetComponentInChildren<Text>():null;if(t!=null)t.text=value;}
     private void SetStatus(string value){if(statusText!=null)statusText.text=value;}
