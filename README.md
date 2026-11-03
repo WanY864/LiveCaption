@@ -70,6 +70,8 @@ Every push to `main` and every pull request runs the Android debug build. Open t
 - LiveCaption itself does not save microphone recordings or a transcript history.
 - The app is designed for foreground use. It pauses when the app leaves the foreground; it does not promise lock-screen listening or an overlay above other apps.
 - Partial results are provider-dependent; some devices may update captions less frequently or only return final results.
+- Android documents SpeechRecognizer as unsuitable for unrestricted continuous recognition because it can consume significant battery and bandwidth. This prototype restarts short recognition sessions after each result; long-session behavior must be tested on the OPPO phone.
+- ColorOS battery optimization may stop microphone activity when the app is backgrounded. LiveCaption intentionally pauses when the activity leaves the foreground.
 
 ## HCI study
 
