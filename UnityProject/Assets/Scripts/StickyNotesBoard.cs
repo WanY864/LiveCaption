@@ -159,3 +159,110 @@ public sealed class StickyNotesBoard : MonoBehaviour {
         field.text=value??"";field.lineType=InputField.LineType.MultiLineNewline;field.characterLimit=1200;
         field.targetGraphic=image;field.shouldHideMobileInput=false;return field;
     }
+
+    private void CycleColor(StickyNoteData n,Image bg){
+        n.colorIndex=(n.colorIndex+1)%papers.Length;bg.color=papers[n.colorIndex];Save();
+    }
+    private void DeleteNote(StickyNoteData n,RectTransform card){
+        data.notes.Remove(n);Destroy(card.gameObject);RefreshEmpty();Save();
+    }
+    private void AddSticker(string symbol,int color){
+        int i=data.stickers.Count;
+        var s=new BoardStickerData{id=data.nextStickerId++,symbol=symbol,colorIndex=color,
+            x=-300f+(i%5)*145f,y=180f-((i/5)%4)*145f};
+        data.stickers.Add(s);MakeSticker(s);stickerLayer.SetAsLastSibling();Save();
+    }
+    private void MakeSticker(BoardStickerData s){
+        var r=Rect("Sticker_"+s.id,stickerLayer,Vector2.zero,Vector2.zero);
+        r.sizeDelta=new Vector2(105,105);r.anchoredPosition=new Vector2(s.x,s.y);
+        var t=r.gameObject.AddComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize=76;t.alignment=TextAnchor.MiddleCenter;t.text=s.symbol;
+        t.color=stickerColors[Mathf.Abs(s.colorIndex)%stickerColors.Length];t.raycastTarget=true;
+        var drag=r.gameObject.AddComponent<StickyDragHandle>();drag.target=r;drag.rootCanvas=canvas;drag.finished=Save;
+    }
+    private void RefreshEmpty(){if(emptyLabel!=null)emptyLabel.gameObject.SetActive(data.notes.Count==0&&data.stickers.Count==0);}
+    private void Load(){
+        try{
+            if(!File.Exists(SavePath))return;
+            var loaded=JsonUtility.FromJson<StickyBoardData>(File.ReadAllText(SavePath));
+            if(loaded==null)return;
+            if(loaded.notes==null)loaded.notes=new List<StickyNoteData>();
+            if(loaded.stickers==null)loaded.stickers=new List<BoardStickerData>();
+            data=loaded;
+            foreach(var n in data.notes)MakeNote(n);
+            foreach(var s in data.stickers)MakeSticker(s);
+            stickerLayer.SetAsLastSibling();
+        }catch(Exception e){Debug.LogWarning("LiveCaption notes could not be loaded: "+e.Message);}
+    }
+    private void Save(){
+        try{File.WriteAllText(SavePath,JsonUtility.ToJson(data,true));}
+        catch(Exception e){Debug.LogWarning("LiveCaption notes could not be saved: "+e.Message);}
+    }
+
+    private RectTransform Rect(string name,Transform parent,Vector2 min,Vector2 max){
+        var go=new GameObject(name,typeof(RectTransform));go.transform.SetParent(parent,false);
+        var r=go.GetComponent<RectTransform>();r.anchorMin=min;r.anchorMax=max;
+        r.offsetMin=Vector2.zero;r.offsetMax=Vector2.zero;return r;
+    }
+    private static void Anchor(RectTransform r,Vector2 min,Vector2 max){
+        r.anchorMin=min;r.anchorMax=max;r.offsetMin=Vector2.zero;r.offsetMax=Vector2.zero;
+    }
+    private Text Txt(string name,Transform parent,string value,int size,Color color,TextAnchor align){
+        var go=new GameObject(name,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);
+        var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.text=value;t.fontSize=size;t.color=color;t.alignment=align;t.supportRichText=false;
+        t.raycastTarget=false;return t;
+    }
+    private Button Button(Transform parent,string label,Vector2 min,Vector2 max,UnityEngine.Events.UnityAction action,bool primary=false){
+        var r=Rect(label.Replace(" ","")+"_Button",parent,min,max);
+        var image=r.gameObject.AddComponent<Image>();image.color=primary?new Color32(208,232,224,255):new Color32(225,228,232,255);
+        var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;b.onClick.AddListener(action);
+        var colors=b.colors;colors.normalColor=image.color;colors.highlightedColor=new Color32(215,220,225,255);
+        colors.pressedColor=new Color32(205,210,216,255);b.colors=colors;
+        var outline=r.gameObject.AddComponent<Outline>();outline.effectColor=new Color32(145,150,158,255);
+        outline.effectDistance=new Vector2(1.5f,-1.5f);
+        var t=Txt("Label",r,label,25,ink,TextAnchor.MiddleCenter);
+        Anchor(t.rectTransform,new Vector2(.03f,.04f),new Vector2(.97f,.96f));return b;
+    }
+
+    private void ToggleListening(){if(listening)StopListening("PAUSED");else StartListening();}
+    private void StartListening(){
+#if UNITY_EDITOR
+        listening=true;SetStartLabel("PAUSE");SetStatus("EDITOR DEMO · ENGLISH");StartCoroutine(EditorDemo());
+#elif UNITY_ANDROID && !UNITY_EDITOR
+        if(!Permission.HasUserAuthorizedPermission(Permission.Microphone)){
+            permissionCallbacks=new PermissionCallbacks();
+            permissionCallbacks.PermissionGranted+=_=>StartNativeListening();
+            permissionCallbacks.PermissionDenied+=_=>OnSpeechError("Microphone permission denied");
+            Permission.RequestUserPermission(Permission.Microphone,permissionCallbacks);
+        }else StartNativeListening();
+#else
+        SetStatus("ANDROID DEVICE REQUIRED");
+#endif
+    }
+    private void StartNativeListening(){
+        try{
+            using(var bridge=new AndroidJavaClass("com.wany864.livecaption.LiveCaptionSpeechBridge"))
+            using(var player=new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                bridge.CallStatic("start",player.GetStatic<AndroidJavaObject>("currentActivity"),"LiveCaptionApp");
+            listening=true;SetStartLabel("PAUSE");SetStatus("STARTING · ENGLISH");
+        }catch(Exception e){OnSpeechError("START FAILED: "+e.Message);}
+    }
+    private System.Collections.IEnumerator EditorDemo(){
+        string[] samples={"Today we're exploring human computer interaction.","Live captions should be clear and easy to follow.","This is an English only speech recognition demo."};
+        int i=0;while(listening){OnCaption(samples[i++%samples.Length]);yield return new WaitForSeconds(3f);}
+    }
+    private void StopListening(string message){
+        listening=false;StopAllCoroutines();StopBridge();SetStartLabel("START LISTENING");SetStatus(message);
+    }
+    private void StopBridge(){
+#if UNITY_ANDROID && !UNITY_EDITOR
+        try{using(var bridge=new AndroidJavaClass("com.wany864.livecaption.LiveCaptionSpeechBridge"))bridge.CallStatic("stop");}catch{}
+#endif
+    }
+    private void ClearCaption(){if(captionText!=null)captionText.text="";SetStatus(listening?"LISTENING · ENGLISH":"CLEARED");}
+    private void SetCaptionSize(int size){captionSize=size;if(captionText!=null)captionText.fontSize=size;}
+    private void SetCaptionOpacity(float value){captionOpacity=Mathf.Clamp01(value);if(captionFill!=null)captionFill.color=new Color(1,1,1,captionOpacity);}
+    private void SetStartLabel(string value){var t=startButton!=null?startButton.GetComponentInChildren<Text>():null;if(t!=null)t.text=value;}
+    private void SetStatus(string value){if(captionStatus!=null)captionStatus.text=value??"";}
+}
