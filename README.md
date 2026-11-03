@@ -1,96 +1,65 @@
 # LiveCaption
 
-**Minimal, English-first live captions for Android.**
+A minimal English-only live caption app for Android, built as a **Unity 6 project** for the HCI Mobile Lab.
 
-LiveCaption keeps the screen focused on one current caption. Interim speech-recognition results replace the previous text instead of building a transcript history.
+The main course implementation is in [UnityProject](UnityProject/). It uses Unity for the app UI and interaction, plus a small Android Java plugin that calls Android's SpeechRecognizer. A standalone Kotlin/Compose prototype remains in `app/` as an optional native reference; it is **not** the Unity course deliverable.
 
-## Current prototype
+## Course requirement fit
 
-- Android native app written in Kotlin + Jetpack Compose (no Unity dependency).
-- Android SpeechRecognizer configured for English (US).
-- Live partial-result updates when the device recognition provider supports them.
-- One current caption only; no transcript history is stored by the app.
-- Start / pause / clear controls.
-- One-line / two-line layout and text-size controls for the HCI experiment.
-- Microphone permission and recognition error states.
-- Foreground-only: keep the app open while listening.
+The HCI Mobile Lab asks students to adapt their previous application for a mobile device, use an appropriate mobile interaction method, deploy a first test to a phone or Android emulator, and document the work. This repository therefore uses Unity as the application framework and adds Android speech recognition as a native plugin. The current concept is LiveCaption; confirm with the instructor whether replacing the previous desktop app with this new captioning app is acceptable.
 
-> **Prototype status:** source code is committed, but it has not yet been built or tested on the user's OPPO device. A GitHub Actions workflow builds a debug APK and publishes it as an artifact. Download the artifact from the latest successful Actions run.
+## Main Unity project
 
-## Build on Windows
+Open `UnityProject/` using **Unity 6 (6000.0.x)**.
 
-### Requirements
-- Windows 10/11
-- Android Studio (includes Android SDK and a compatible JDK)
-- Android SDK Platform 35
-- Gradle 8.9 (or use Android Studio's Gradle integration)
-- An OPPO Android phone and a USB data cable
+### Features
+- Minimal dark interface with one current caption (no transcript history).
+- English (US / `en-US`) speech recognition.
+- Partial results replace the current caption when the device recognizer provides them.
+- Start / pause / clear.
+- One-line / two-line caption layout and text-size controls.
+- Runtime microphone permission request.
+- Editor demo mode with sample text so the UI can be reviewed without an Android device.
+- Stops listening when the app is backgrounded; foreground-only by design.
 
-### Build with Android Studio
-1. Install Android Studio: <https://developer.android.com/studio>
-2. Clone this repository.
-3. Open the repository root in Android Studio.
-4. Let Gradle sync. If Android Studio asks to install Android SDK Platform 35 / Build Tools, accept.
-5. Select **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
-6. Android Studio writes the debug APK under `app/build/outputs/apk/debug/app-debug.apk`.
+### Build on Windows
+1. Install Unity Hub and Unity 6.
+2. In Unity Hub, install **Android Build Support**, including Android SDK & NDK Tools and OpenJDK.
+3. Open `UnityProject/`.
+4. Wait for Unity to import assets. The startup scene is `Assets/Scenes/LiveCaption.unity`; the UI is created automatically at runtime.
+5. In **File → Build Profiles** (or Build Settings), choose Android, switch platform, and select the listed LiveCaption scene.
+6. Set Package Name to `com.wany864.livecaption`, Minimum API Level to Android 8.0 / API 26 or higher, and Scripting Backend to IL2CPP or Mono (use the default supported by your Unity install).
+7. Enable **Development Build** for the first test, then Build an APK.
+8. On your OPPO phone, enable Developer options and USB debugging, connect over USB, approve the prompt, and install the APK from Unity or with `adb install -r path-to-apk.apk`.
+9. On first launch, tap **Start listening** and grant microphone access.
 
-### Build from PowerShell
-If Gradle 8.9 is installed and on PATH:
+### Editor preview
+Press Play in Unity Editor. The Start button cycles through sample English captions. This is only a UI preview; actual speech recognition runs on Android.
 
-```powershell
-gradle --version
-gradle assembleDebug
-```
+## Android plugin
 
-The APK is at `app\build\outputs\apk\debug\app-debug.apk`.
+`Assets/Plugins/Android/LiveCaptionSpeech.androidlib/` is an Android Library Project. It wraps Android's `SpeechRecognizer` and sends caption/status callbacks to the Unity GameObject named `LiveCaptionApp` using `UnityPlayer.UnitySendMessage`.
 
-## Install on an OPPO phone
+The recognizer requests `en-US` and partial results. Provider behavior varies by phone. Android may use a network speech service; offline recognition is not guaranteed. Android's SpeechRecognizer is not designed for unrestricted always-on continuous recognition and can consume battery/bandwidth. The app pauses when sent to the background.
 
-1. On the phone, enable Developer options (Settings → About device → tap Version number / Build number repeatedly; exact menu names vary by ColorOS version).
-2. Enable USB debugging in Developer options.
-3. Connect the phone using a data-capable USB cable and approve the debugging prompt.
-4. Install Android Platform Tools (ADB), then run:
+## Optional native reference project
 
-```powershell
-adb devices
-adb install -r app\build\outputs\apk\debug\app-debug.apk
-```
+The root Gradle project and `app/` directory contain an independent Kotlin/Jetpack Compose implementation used as a reference prototype. The HCI submission path is the Unity project above.
 
-You can also copy the APK to the phone and open it, allowing installation from that file source when Android prompts.
+## HCI experiment
 
-## GitHub Actions APK
+See [docs/HCI-EXPERIMENT.md](docs/HCI-EXPERIMENT.md). Proposed study: compare one-line and two-line caption layouts with the same speaker, phone, script, and font size. Measure comprehension, readability, perceived effort, preference, and recognition issues. Do not invent participant results.
 
-Every push to `main` and every pull request runs the Android debug build. Open the repository's **Actions** tab, select the latest successful **Android Debug APK** run, and download the `LiveCaption-debug-apk` artifact. GitHub artifacts are temporary build outputs, not a Play Store release.
+## Privacy
 
-## Speech recognition and privacy
+- Microphone permission is requested only when Start is pressed.
+- LiveCaption itself does not save recordings or build a transcript history.
+- The Android speech recognition provider may process audio remotely. Tell participants this during testing; do not describe the app as fully offline.
+- Keep the app in the foreground during use.
 
-- The app requests `RECORD_AUDIO` only when the user taps **Start listening**.
-- Recognition is configured with the `en-US` locale. The installed Android recognition service determines actual language support and recognition quality.
-- Android's platform `SpeechRecognizer` may stream audio to a remote recognition service. Offline recognition is not guaranteed and depends on the device/provider and downloaded language packs.
-- LiveCaption itself does not save microphone recordings or a transcript history.
-- The app is designed for foreground use. It pauses when the app leaves the foreground; it does not promise lock-screen listening or an overlay above other apps.
-- Partial results are provider-dependent; some devices may update captions less frequently or only return final results.
-- Android documents SpeechRecognizer as unsuitable for unrestricted continuous recognition because it can consume significant battery and bandwidth. This prototype restarts short recognition sessions after each result; long-session behavior must be tested on the OPPO phone.
-- ColorOS battery optimization may stop microphone activity when the app is backgrounded. LiveCaption intentionally pauses when the activity leaves the foreground.
+## Status
 
-## HCI study
-
-See [docs/HCI-EXPERIMENT.md](docs/HCI-EXPERIMENT.md) for the proposed comparison of one-line and two-line captions, procedure, measures, and reporting template.
-
-## Project structure
-
-```
-app/
-  src/main/
-    AndroidManifest.xml
-    java/com/wany864/livecaption/
-      MainActivity.kt
-      EnglishSpeechController.kt
-docs/
-  HCI-EXPERIMENT.md
-.github/workflows/
-  android-build.yml
-```
+The Unity source and Android plugin are committed, but this project has **not yet been imported, compiled in Unity, or tested on the OPPO phone**. The GitHub Actions workflow currently builds the optional Kotlin reference app, not the Unity project. The Unity APK must be built from Unity 6 on your Windows machine with Android Build Support installed.
 
 ## License
 
