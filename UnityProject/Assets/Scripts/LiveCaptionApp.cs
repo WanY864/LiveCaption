@@ -9,6 +9,14 @@ public sealed class LiveCaptionBootstrap : MonoBehaviour {
     private static void CreateApp() {
         if(created) return;
         created=true;
+        var cameraObject = new GameObject("Main Camera");
+        cameraObject.tag = "MainCamera";
+        cameraObject.transform.position = new Vector3(0, 0, -10);
+        var camera = cameraObject.AddComponent<Camera>();
+        camera.clearFlags = CameraClearFlags.SolidColor;
+        camera.backgroundColor = new Color32(8, 11, 18, 255);
+        camera.orthographic = true;
+
         var root=new GameObject("LiveCaptionApp");
         DontDestroyOnLoad(root);
         root.AddComponent<LiveCaptionApp>();
@@ -55,7 +63,7 @@ public sealed class LiveCaptionApp : MonoBehaviour {
     }
     private static RectTransform Rect(string n,Transform p,Vector2 a,Vector2 b){var g=new GameObject(n,typeof(RectTransform));g.transform.SetParent(p,false);var r=g.GetComponent<RectTransform>();r.anchorMin=a;r.anchorMax=b;r.offsetMin=Vector2.zero;r.offsetMax=Vector2.zero;return r;}
     private static void Anchor(RectTransform r,Vector2 a,Vector2 b){r.anchorMin=a;r.anchorMax=b;r.offsetMin=Vector2.zero;r.offsetMax=Vector2.zero;}
-    private static Text Txt(string n,Transform p,string v,int s,Color c,TextAnchor a){var g=new GameObject(n,typeof(RectTransform),typeof(Text));g.transform.SetParent(p,false);var t=g.GetComponent<Text>();t.text=v;t.font=Resources.GetBuiltinResource<Font>("Arial.ttf");t.fontSize=s;t.color=c;t.alignment=a;t.raycastTarget=false;return t;}
+    private static Text Txt(string n,Transform p,string v,int s,Color c,TextAnchor a){var g=new GameObject(n,typeof(RectTransform),typeof(Text));g.transform.SetParent(p,false);var t=g.GetComponent<Text>();t.text=v;t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=s;t.color=c;t.alignment=a;t.raycastTarget=false;return t;}
     private Button Btn(Transform p,string label,Vector2 a,Vector2 b,UnityEngine.Events.UnityAction action,bool primary=false){var r=Rect(label,p,a,b);var im=r.gameObject.AddComponent<Image>();im.color=primary?accent:new Color32(34,43,58,255);var bt=r.gameObject.AddComponent<Button>();bt.targetGraphic=im;bt.onClick.AddListener(action);var t=Txt("Label",r,label,27,primary?ink:paper,TextAnchor.MiddleCenter);Anchor(t.rectTransform,new Vector2(.04f,.04f),new Vector2(.96f,.96f));return bt;}
     private void Toggle(){if(listening)StopListening("PAUSED");else StartListening();}
     private void StartListening(){
