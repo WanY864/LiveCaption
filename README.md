@@ -1,65 +1,81 @@
 # LiveCaption
 
-A minimal English-only live caption app for Android, built as a **Unity 6 project** for the HCI Mobile Lab.
+**LiveCaption** is a Unity 6 Android app prototype with two modes:
 
-The main course implementation is in [UnityProject](UnityProject/). It uses Unity for the app UI and interaction, plus a small Android Java plugin that calls Android's SpeechRecognizer. A standalone Kotlin/Compose prototype remains in `app/` as an optional native reference; it is **not** the Unity course deliverable.
+- **Sticky Board (primary):** an offline, touch-friendly sticky-note board. Create and edit notes, drag note cards around, change note colors, and add draggable decorative stickers.
+- **Live Captions (optional):** the original English-only Android speech-recognition interface and Java bridge are retained as an optional feature for devices that provide a compatible Android speech-recognition service.
 
-## Course requirement fit
-
-The HCI Mobile Lab asks students to adapt their previous application for a mobile device, use an appropriate mobile interaction method, deploy a first test to a phone or Android emulator, and document the work. This repository therefore uses Unity as the application framework and adds Android speech recognition as a native plugin. The current concept is LiveCaption; confirm with the instructor whether replacing the previous desktop app with this new captioning app is acceptable.
+The sticky board does not require a speech service, network connection, account, or server. Notes and sticker positions are saved locally in the app's persistent data folder as JSON.
 
 ## Main Unity project
 
-Open `UnityProject/` using **Unity 6 (6000.0.x)**.
+Open `UnityProject/` with **Unity 6.6 (6000.6.5f1)**.
 
-### Features
-- Minimal dark interface with one current caption (no transcript history).
-- English (US / `en-US`) speech recognition.
-- Partial results replace the current caption when the device recognizer provides them.
-- Start / pause / clear.
-- One-line / two-line caption layout and text-size controls.
-- Runtime microphone permission request.
-- Editor demo mode with sample text so the UI can be reviewed without an Android device.
-- Stops listening when the app is backgrounded; foreground-only by design.
+### Sticky Board features
+- Create multiple notes with the `+ NOTE` button.
+- Tap inside a note to edit it using the phone keyboard.
+- Drag a note by its header to reposition it.
+- Tap `COLOR` on a note to cycle through pastel colors.
+- Add star, heart, sparkle, and check-mark stickers from the toolbar.
+- Drag stickers anywhere on the board.
+- Note text, colors, positions, and sticker positions are saved locally and restored on next launch.
+- No sign-in, cloud sync, or network permission is needed for the notes feature.
 
-### Build on Windows
-1. Install Unity Hub and Unity 6.
+### Optional Live Captions
+- English (US / `en-US`) speech-recognition bridge using Android `SpeechRecognizer`.
+- Partial results replace the current caption when the device recognition provider supports them.
+- Start / pause / clear, font-size and caption-background opacity controls.
+- Speech recognition is optional. Some Android devices do not include a compatible speech-recognition service; on those devices the Notes mode remains fully usable and the Captions mode reports an error rather than disabling the app.
+
+## Build on Windows
+
+1. Install Unity Hub and Unity 6.6.5f1.
 2. In Unity Hub, install **Android Build Support**, including Android SDK & NDK Tools and OpenJDK.
 3. Open `UnityProject/`.
-4. Wait for Unity to import assets. The startup scene is `Assets/Scenes/LiveCaption.unity`; the UI is created automatically at runtime.
-5. In **File → Build Profiles** (or Build Settings), choose Android, switch platform, and select the listed LiveCaption scene.
-6. Set Package Name to `com.wany864.livecaption`, Minimum API Level to Android 8.0 / API 26 or higher, and Scripting Backend to IL2CPP or Mono (use the default supported by your Unity install).
-7. Enable **Development Build** for the first test, then Build an APK.
-8. On your OPPO phone, enable Developer options and USB debugging, connect over USB, approve the prompt, and install the APK from Unity or with `adb install -r path-to-apk.apk`.
-9. On first launch, tap **Start listening** and grant microphone access.
+4. Wait for Unity to import assets. The startup scene is `Assets/Scenes/LiveCaption.unity`; the app UI is created automatically at runtime.
+5. In **File → Build Profiles**, choose Android, switch platform, and ensure `Assets/Scenes/LiveCaption.unity` is included in the Scene List.
+6. Set Package Name to `com.wany864.livecaption`, Minimum API Level to Android 8.0 / API 26 or higher, and use ARM64. Use Unity-installed JDK, SDK, NDK, and Gradle.
+7. Build an APK.
+8. Transfer the APK to the Android phone and install it. On first launch, Notes mode opens by default. No microphone permission is required for notes.
 
-### Editor preview
-Press Play in Unity Editor. The Start button cycles through sample English captions. This is only a UI preview; actual speech recognition runs on Android.
+## Use the Sticky Board
 
-## Android plugin
+- Tap **+ NOTE** to create a note.
+- Tap the note body to type.
+- Drag the note's top header to move it.
+- Tap **COLOR** to cycle its background.
+- Tap **★**, **♥**, **✦**, or **✓** to add a sticker, then drag the sticker to place it.
+- Switch to **CAPTIONS** only if you want to try the optional speech-recognition feature.
 
-`Assets/Plugins/Android/LiveCaptionSpeech.androidlib/` is an Android Library Project. It wraps Android's `SpeechRecognizer` and sends caption/status callbacks to the Unity GameObject named `LiveCaptionApp` using `UnityPlayer.UnitySendMessage`.
+## Data and privacy
 
-The recognizer requests `en-US` and partial results. Provider behavior varies by phone. Android may use a network speech service; offline recognition is not guaranteed. Android's SpeechRecognizer is not designed for unrestricted always-on continuous recognition and can consume battery/bandwidth. The app pauses when sent to the background.
+- Notes are saved locally at `Application.persistentDataPath/livecaption_sticky_board.json`.
+- The app does not upload note text, stickers, or positions.
+- Android speech recognition is a separate optional feature. The Android speech provider may process audio remotely; offline speech recognition is not guaranteed.
+- The app pauses speech recognition when it is sent to the background.
 
-## Optional native reference project
+## HCI study
 
-The root Gradle project and `app/` directory contain an independent Kotlin/Jetpack Compose implementation used as a reference prototype. The HCI submission path is the Unity project above.
+See [docs/HCI-EXPERIMENT.md](docs/HCI-EXPERIMENT.md) for a proposed mobile usability study focused on note creation, drag-and-drop placement, sticker use, and the optional captions mode. Record actual participant observations; do not invent results.
 
-## HCI experiment
+## Project structure
 
-See [docs/HCI-EXPERIMENT.md](docs/HCI-EXPERIMENT.md). Proposed study: compare one-line and two-line caption layouts with the same speaker, phone, script, and font size. Measure comprehension, readability, perceived effort, preference, and recognition issues. Do not invent participant results.
-
-## Privacy
-
-- Microphone permission is requested only when Start is pressed.
-- LiveCaption itself does not save recordings or build a transcript history.
-- The Android speech recognition provider may process audio remotely. Tell participants this during testing; do not describe the app as fully offline.
-- Keep the app in the foreground during use.
+```
+UnityProject/
+  Assets/
+    Scenes/LiveCaption.unity
+    Scripts/
+      LiveCaptionApp.cs
+      StickyNotesBoard.cs
+    Plugins/Android/LiveCaptionSpeech.androidlib/
+      src/main/java/com/wany864/livecaption/LiveCaptionSpeechBridge.java
+app/                         # Optional Kotlin reference prototype
+docs/HCI-EXPERIMENT.md
+```
 
 ## Status
 
-The Unity source and Android plugin are committed, but this project has **not yet been imported, compiled in Unity, or tested on the OPPO phone**. The GitHub Actions workflow currently builds the optional Kotlin reference app, not the Unity project. The Unity APK must be built from Unity 6 on your Windows machine with Android Build Support installed.
+The Sticky Board and optional captions integration have been added to the Unity source and committed to GitHub. The updated project has **not yet been compiled in the user's Unity editor or tested on the phone**. Build and device verification are still required.
 
 ## License
 
