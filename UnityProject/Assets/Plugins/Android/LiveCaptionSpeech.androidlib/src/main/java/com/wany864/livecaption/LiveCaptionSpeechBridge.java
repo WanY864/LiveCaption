@@ -8,7 +8,6 @@ import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
-import com.unity3d.player.UnityPlayer;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -89,7 +88,7 @@ public final class LiveCaptionSpeechBridge {
         ArrayList<String> values = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (values != null && !values.isEmpty() && values.get(0) != null) {
             String text = values.get(0).trim();
-            if (!text.isEmpty()) UnityPlayer.UnitySendMessage(unityObject, "OnCaption", text);
+            if (!text.isEmpty()) sendUnityMessage("OnCaption", text);
         }
     }
 
@@ -120,11 +119,19 @@ public final class LiveCaptionSpeechBridge {
         }, delay);
     }
 
+    private static void sendUnityMessage(String method, String value) {
+        try {
+            Class<?> unityPlayer = Class.forName("com.unity3d.player.UnityPlayer");
+            unityPlayer.getMethod("UnitySendMessage", String.class, String.class, String.class)
+                .invoke(null, unityObject, method, value);
+        } catch (Exception ignored) { }
+    }
+
     private static void status(String value) {
-        UnityPlayer.UnitySendMessage(unityObject, "OnSpeechStatus", value);
+        sendUnityMessage("OnSpeechStatus", value);
     }
 
     private static void error(String value) {
-        UnityPlayer.UnitySendMessage(unityObject, "OnSpeechError", value);
+        sendUnityMessage("OnSpeechError", value);
     }
 }
